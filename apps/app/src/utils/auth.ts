@@ -43,7 +43,7 @@ export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: 'postgresql',
   }),
-  baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",  // added (baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,")
   trustedOrigins: process.env.AUTH_TRUSTED_ORIGINS
     ? process.env.AUTH_TRUSTED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3000', 'https://*.trycomp.ai', 'http://localhost:3002'],
@@ -116,7 +116,7 @@ export const auth = betterAuth({
         const isLocalhost = process.env.NODE_ENV === 'development';
         const protocol = isLocalhost ? 'http' : 'https';
 
-        const betterAuthUrl = process.env.NEXT_PUBLIC_BETTER_AUTH_URL;
+        const betterAuthUrl = process.env.BETTER_AUTH_URL;   //NEXT_PUBLIC_BETTER_AUTH_URL
         const isDevEnv = betterAuthUrl?.includes('dev.trycomp.ai');
         const isProdEnv = betterAuthUrl?.includes('app.trycomp.ai');
 

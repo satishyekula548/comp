@@ -56,6 +56,7 @@ const config = {
       },
     ];
   },
+  experimental: { turbo: false }, // added new line
   skipTrailingSlashRedirect: true,
   outputFileTracingRoot: path.join(__dirname, '../../'),
   ...(isStandalone

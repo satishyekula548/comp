@@ -1,3 +1,4 @@
+ubuntu@ip-172-31-8-33:~/comp/apps/app$ cat next.config.ts 
 import { PrismaPlugin } from '@prisma/nextjs-monorepo-workaround-plugin';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
@@ -51,7 +52,6 @@ const config: NextConfig = {
   },
 
   experimental: {
-    
     serverActions: {
       bodySizeLimit: '15mb',
       allowedOrigins:
@@ -98,3 +98,6 @@ const config: NextConfig = {
 };
 
 export default withBotId(config);
+ubuntu@ip-172-31-8-33:~/comp/apps/app$ 
+
+
