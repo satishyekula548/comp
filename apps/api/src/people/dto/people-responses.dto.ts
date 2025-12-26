@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Departments } from '@trycompai/db';
+
+/**
+ * Business enum (API layer only)
+ * ❗ DO NOT import this from @trycompai/db
+ */
+export enum Departments {
+  it = 'it',
+  hr = 'hr',
+  finance = 'finance',
+  legal = 'legal',
+  security = 'security',
+}
 
 export class UserResponseDto {
   @ApiProperty({

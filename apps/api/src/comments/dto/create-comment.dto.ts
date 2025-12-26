@@ -1,4 +1,3 @@
-import { CommentEntityType } from '@db';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -11,6 +10,17 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { UploadAttachmentDto } from '../../attachments/upload-attachment.dto';
+
+/**
+ * ❗ BUSINESS ENUM (NOT PRISMA)
+ * Must be defined manually
+ */
+export enum CommentEntityType {
+  task = 'task',
+  policy = 'policy',
+  risk = 'risk',
+  vendor = 'vendor',
+}
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -34,7 +44,7 @@ export class CreateCommentDto {
   @ApiProperty({
     description: 'Type of entity being commented on',
     enum: CommentEntityType,
-    example: 'task',
+    example: CommentEntityType.task,
   })
   @IsEnum(CommentEntityType)
   entityType: CommentEntityType;

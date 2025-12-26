@@ -6,7 +6,17 @@ import {
   IsBoolean,
   IsNumber,
 } from 'class-validator';
-import { Departments } from '@trycompai/db';
+
+/**
+ * ❗ Business enum (NOT Prisma, NOT db package)
+ */
+export enum Departments {
+  it = 'it',
+  hr = 'hr',
+  finance = 'finance',
+  legal = 'legal',
+  security = 'security',
+}
 
 export class CreatePeopleDto {
   @ApiProperty({

@@ -6,25 +6,50 @@ import path from 'path';
 import './src/env.mjs';
 
 const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === 'true';
+const isDev = process.env.NODE_ENV !== 'production';
+const isVm = process.env.IS_VM === 'true';
 
 const config: NextConfig = {
-  // Ensure Turbopack can import .md files as raw strings during dev
-  turbopack: {
-    root: path.join(__dirname, '..', '..'),
-    rules: {
-      '*.md': {
-        loaders: ['raw-loader'],
-        as: '*.js',
-      },
-    },
-  },
+  /**
+   * ✅ REQUIRED: allow portal + app domains in DEV
+   * Fixes:
+   * - Blocked cross-origin request
+   * - OTP / auth random failures
+   * - _next/* resource blocking
+   */
+  allowedDevOrigins: [
+    'https://app.tricompai.sl443.site',
+    'https://portal.tricompai.sl443.site',
+    'http://localhost:3000',
+    'http://localhost:3002',
+  ],
+
+  /**
+   * ⚠️ Turbopack ONLY for local dev (never on VM)
+   */
+  ...(isDev && !isVm
+    ? {
+        turbopack: {
+          root: path.join(__dirname, '..', '..'),
+          rules: {
+            '*.md': {
+              loaders: ['raw-loader'],
+              as: '*.js',
+            },
+          },
+        },
+      }
+    : {}),
+
+  /**
+   * Webpack config (Prisma + markdown support)
+   */
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Very important, DO NOT REMOVE, it's needed for Prisma to work in the server bundle
+      // REQUIRED for Prisma in monorepo
       config.plugins = [...config.plugins, new PrismaPlugin()];
     }
 
-    // Enable importing .md files as raw strings during webpack builds
     config.module = config.module || { rules: [] };
     config.module.rules = config.module.rules || [];
     config.module.rules.push({
@@ -34,13 +59,19 @@ const config: NextConfig = {
 
     return config;
   },
-  // Use S3 bucket for static assets with app-specific path
+
+  /**
+   * Static assets
+   */
   assetPrefix:
     process.env.NODE_ENV === 'production' && process.env.STATIC_ASSETS_URL
       ? `${process.env.STATIC_ASSETS_URL}/app`
       : '',
+
   reactStrictMode: false,
+
   transpilePackages: ['@trycompai/db', '@prisma/client'],
+
   images: {
     remotePatterns: [
       {
@@ -50,8 +81,10 @@ const config: NextConfig = {
     ],
   },
 
+  /**
+   * Experimental flags (keep as-is)
+   */
   experimental: {
-    
     serverActions: {
       bodySizeLimit: '15mb',
       allowedOrigins:
@@ -63,22 +96,25 @@ const config: NextConfig = {
     },
     authInterrupts: true,
     optimizePackageImports: ['@trycompai/db', '@trycompai/ui'],
-    // Reduce build peak memory
     webpackMemoryOptimizations: true,
   },
+
+  /**
+   * Monorepo tracing
+   */
   outputFileTracingRoot: path.join(__dirname, '../../'),
 
-  // Reduce memory usage during production build
   productionBrowserSourceMaps: false,
-  // If builds still OOM, uncomment the next line to disable SWC minification (larger output, less memory)
-  // swcMinify: false,
+
   ...(isStandalone
     ? {
         output: 'standalone' as const,
       }
     : {}),
 
-  // PostHog proxy for better tracking
+  /**
+   * PostHog proxy
+   */
   async rewrites() {
     return [
       {

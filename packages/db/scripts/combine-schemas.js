@@ -1,67 +1,81 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const BASE_DIR = path.join(__dirname, '../prisma');
-const SCHEMA_DIR = path.join(__dirname, '../prisma/schema');
-const BASE_SCHEMA = path.join(__dirname, '../prisma/schema.prisma');
-const OUTPUT_DIR = path.join(__dirname, '../dist');
-const OUTPUT_SCHEMA = path.join(OUTPUT_DIR, 'schema.prisma');
+const SCHEMA_DIR = path.join(__dirname, "../prisma/schema");
+const OUTPUT_DIR = path.join(__dirname, "../dist");
+const OUTPUT_SCHEMA = path.join(OUTPUT_DIR, "schema.prisma");
 
-console.log('🔨 Combining Prisma schema files...');
+console.log("🔨 Combining Prisma schema files...");
 
-// Read the base schema file
-let combinedSchema = fs.readFileSync(BASE_SCHEMA, 'utf8');
+// 🔒 Always start with ONE generator + datasource
+let combinedSchema = `
+generator client {
+  provider = "prisma-client-js"
+}
 
-// Read all .prisma files from the schema directory
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+`.trim() + "\n\n";
+
+// Read all .prisma files
 const schemaFiles = fs
   .readdirSync(SCHEMA_DIR)
-  .filter((file) => file.endsWith('.prisma'))
-  .sort(); // Sort for consistent output
+  .filter((file) => file.endsWith(".prisma"))
+  .sort();
 
-console.log(`📁 Found ${schemaFiles.length} schema files to combine`);
+console.log(`📁 Found ${schemaFiles.length} schema files`);
 
-// Append each schema file
-schemaFiles.forEach((file) => {
+for (const file of schemaFiles) {
   console.log(`  - Adding ${file}`);
-  const content = fs.readFileSync(path.join(SCHEMA_DIR, file), 'utf8');
+  const content = fs.readFileSync(path.join(SCHEMA_DIR, file), "utf8");
 
-  // Ensure we have proper line breaks
-  combinedSchema += '\n\n';
-
-  // Add a comment separator for clarity
   combinedSchema += `// ===== ${file} =====\n`;
   combinedSchema += content;
+  if (!content.endsWith("\n")) combinedSchema += "\n";
+  combinedSchema += "\n";
+}
 
-  // Ensure content ends with a newline
-  if (!content.endsWith('\n')) {
-    combinedSchema += '\n';
-  }
-});
-
-// Ensure the output directory exists
+// Ensure dist exists
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// Write the combined schema
+// Write schema
 fs.writeFileSync(OUTPUT_SCHEMA, combinedSchema);
 
-// Copy the client, index, and types files
-const clientFileContent = `import { PrismaClient } from '@prisma/client';
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-export const db = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
-`;
-fs.writeFileSync(path.join(OUTPUT_DIR, 'client.ts'), clientFileContent);
+// Prisma client helper
+fs.writeFileSync(
+  path.join(OUTPUT_DIR, "client.ts"),
+  `
+import { PrismaClient } from "@prisma/client";
 
-// Create an index file that re-exports the db client
-const indexFileContent = `export { db } from './client'
-export * from '@prisma/client';
-`;
-fs.writeFileSync(path.join(OUTPUT_DIR, 'index.ts'), indexFileContent);
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}
+`.trim()
+);
+
+// Index export
+fs.writeFileSync(
+  path.join(OUTPUT_DIR, "index.ts"),
+  `
+export { db } from "./client";
+export * from "@prisma/client";
+`.trim()
+);
 
 console.log(`✅ Combined schema written to: ${OUTPUT_SCHEMA}`);
-console.log(`📏 Total size: ${Math.round(combinedSchema.length / 1024)}KB`);
-console.log(`🎯 Schema ready for distribution - users will generate their own Prisma client`);
+console.log(`📏 Size: ${(combinedSchema.length / 1024).toFixed(1)} KB`);
+console.log("🎯 Schema ready for Prisma generate");

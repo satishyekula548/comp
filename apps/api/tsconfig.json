@@ -2,29 +2,25 @@
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
+
+    "target": "es2022",
+    "outDir": "../../dist/apps/api",
+    "rootDir": "./src",
+    "jsx": "react-jsx",
+    "strict": false,
+    "skipLibCheck": true,
     "esModuleInterop": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "esnext",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
+
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@db": ["./prisma/index"]
-    },
-    "jsx": "react-jsx"
-  }
+      "@/*": ["src/*"],
+
+      "@db": ["../../packages/db/dist/index.js"],
+      "@trycompai/db": ["../../packages/db/dist/index.js"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

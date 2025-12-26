@@ -5,6 +5,7 @@ const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === 'true';
 
 const config = {
   transpilePackages: ['@trycompai/db'],
+
   images: {
     remotePatterns: [
       {
@@ -13,6 +14,14 @@ const config = {
       },
     ],
   },
+
+  allowedDevOrigins: [
+    'http://localhost:3002',
+    'http://localhost:3000',
+    'https://portal.tricompai.sl443.site',
+    'https://app.tricompai.sl443.site',
+  ],
+
   async rewrites() {
     return [
       {
@@ -29,6 +38,7 @@ const config = {
       },
     ];
   },
+
   async headers() {
     return [
       {
@@ -56,12 +66,13 @@ const config = {
       },
     ];
   },
-  experimental: { turbo: false }, // added new line
+
   skipTrailingSlashRedirect: true,
   outputFileTracingRoot: path.join(__dirname, '../../'),
+
   ...(isStandalone
     ? {
-        output: 'standalone' as const,
+        output: 'standalone',
       }
     : {}),
 };
