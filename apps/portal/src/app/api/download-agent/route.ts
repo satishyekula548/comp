@@ -69,8 +69,11 @@ const getDownloadToken = async (token: string): Promise<DownloadTokenInfo | null
 };
 
 const ensureBucket = (): string | null => {
-  const bucket = process.env.FLEET_AGENT_BUCKET_NAME;
-  return bucket ?? null;
+  return (
+    process.env.FLEET_AGENT_BUCKET_NAME ||
+    process.env.APP_AWS_BUCKET_NAME ||
+    null
+  );
 };
 
 const handleDownload = async (req: NextRequest, isHead: boolean) => {

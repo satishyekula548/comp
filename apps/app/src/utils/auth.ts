@@ -125,21 +125,16 @@ export const auth = betterAuth({
     organization({
       membershipLimit: 100000000000,
       async sendInvitationEmail(data) {
-        const isLocalhost = process.env.NODE_ENV === 'development';
-        const protocol = isLocalhost ? 'http' : 'https';
+        function getInviteOrigin(): string {
+          const isDev = process.env.NODE_ENV === 'development';
+          const raw = (process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_BETTER_AUTH_URL || '').trim();
+          if (!raw) return isDev ? 'http://localhost:3000' : 'https://localhost:3000';
+          const withoutSlash = raw.replace(/\/$/, '');
+          return withoutSlash.startsWith('http') ? withoutSlash : `https://${withoutSlash}`;
+        }
 
-        const betterAuthUrl = process.env.NEXT_PUBLIC_BETTER_AUTH_URL;
-        const isDevEnv = betterAuthUrl?.includes('dev.trycomp.ai');
-        const isProdEnv = betterAuthUrl?.includes('app.trycomp.ai');
-
-        const domain = isDevEnv
-          ? 'dev.trycomp.ai'
-          : isProdEnv
-            ? 'app.trycomp.ai'
-            : 'localhost:3000';
-        const inviteLink = `${protocol}://${domain}/invite/${data.invitation.id}`;
-
-        const url = `${protocol}://${domain}/auth`;
+        const origin = getInviteOrigin();
+        const inviteLink = `${origin}/invite/${data.invitation.id}`;
 
         await sendInviteMemberEmail({
           inviteeEmail: data.email,

@@ -17,7 +17,13 @@ export function VideoCarousel({ videos }: VideoCarouselProps) {
   // Create a map of completion records by their videoId for efficient lookup
   // videoId in the DB record corresponds to the id in the metadata
   const completionRecordsMap = new Map(videos.map((record) => [record.videoId, record]));
-  const { orgId } = useParams<{ orgId: string }>();
+  // useParams() can be null during some build-time checks — guard it
+  const params = useParams() as { orgId?: string } | null;
+  if (!params?.orgId) {
+    // Safe fallback during build / server rendering: do not render the carousel
+    return null;
+  }
+  const { orgId } = params;
 
   // Create our merged videos array by enriching metadata with completion status
   const mergedVideos = trainingVideos.map((metadata) => {

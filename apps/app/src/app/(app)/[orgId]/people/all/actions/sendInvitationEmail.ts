@@ -67,7 +67,8 @@ export const sendInvitationEmailToExistingMember = async ({
     const isDevEnv = betterAuthUrl?.includes('dev.trycomp.ai');
     const isProdEnv = betterAuthUrl?.includes('app.trycomp.ai');
 
-    const domain = isDevEnv ? 'dev.trycomp.ai' : isProdEnv ? 'app.trycomp.ai' : 'localhost:3000';
+    // const domain = isDevEnv ? 'dev.trycomp.ai' : isProdEnv ? 'app.trycomp.ai' : 'localhost:3000';
+    const domain = new URL(process.env.APP_URL!).host;
     const inviteLink = `${protocol}://${domain}/invite/${invitation.id}`;
 
     // Send the invitation email

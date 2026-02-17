@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: fleet-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: fleet
+      MYSQL_DATABASE: fleet
+      MYSQL_USER: fleet
+      MYSQL_PASSWORD: fleet
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pfleet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: fleet-redis
+    restart: always
+
+  fleet:
+    image: fleetdm/fleet:latest
+    container_name: fleet-server
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - "8080:8080"
+    environment:
+      FLEET_MYSQL_ADDRESS: "mysql:3306"
+      FLEET_MYSQL_DATABASE: "fleet"
+      FLEET_MYSQL_USERNAME: "fleet"
+      FLEET_MYSQL_PASSWORD: "fleet"
+      FLEET_REDIS_ADDRESS: "redis:6379"
+      FLEET_SERVER_ADDRESS: "0.0.0.0:8080"
+      FLEET_SERVER_TLS: "false"
+    command: >
+      sh -c 'until nc -z mysql 3306 2>/dev/null; do echo "waiting for mysql..."; sleep 1; done;
+             exec fleet serve --server_address=0.0.0.0:8080'
+
+volumes:
+  mysql_data:
+
+x-commands:
+  apply-and-verify:
+    - "docker-compose -f /home/sathish/zelar-test/today15/comp/fleet/docker-compose.yaml up -d --remove-orphans"
+    - "docker-compose -f /home/sathish/zelar-test/today15/comp/fleet/docker-compose.yaml logs -f --tail=200 fleet"
+    - "curl -v http://localhost:8080/"
+    - "If you prefer TLS, tell me and I’ll give the exact mount paths and env vars to add (FLEET_SERVER_CERT, FLEET_SERVER_KEY or bind ./tools/osquery into the container)."

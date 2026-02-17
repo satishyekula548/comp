@@ -1,11 +1,11 @@
 'use server';
 
-import { createTrainingVideoEntries } from '@/lib/db/employee';
 import { auth } from '@/utils/auth';
-import type { Role } from '@db';
+import { sendInviteMemberEmail } from '@comp/email/lib/invite-member';
 import { db } from '@db';
 import { headers } from 'next/headers';
 
+//export const sendInvitationEmailToExistingMember = async ({
 export const addEmployeeWithoutInvite = async ({
   email,
   organizationId,
@@ -13,14 +13,17 @@ export const addEmployeeWithoutInvite = async ({
 }: {
   email: string;
   organizationId: string;
-  roles: Role[];
+  roles: string[];
 }) => {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
+
     if (!session?.session) {
       throw new Error('Authentication required.');
     }
+
     const currentUserId = session.session.userId;
+
     const currentUserMember = await db.member.findFirst({
       where: {
         organizationId: organizationId,
@@ -31,78 +34,53 @@ export const addEmployeeWithoutInvite = async ({
 
     if (
       !currentUserMember ||
-      (!currentUserMember.role.includes('admin') && !currentUserMember.role.includes('owner'))
+      (!currentUserMember.role.includes('admin') &&
+        !currentUserMember.role.includes('owner'))
     ) {
-      throw new Error("You don't have permission to add members.");
+      throw new Error("You don't have permission to send invitations.");
     }
 
-    let userId = '';
-    const existingUser = await db.user.findFirst({
-      where: {
-        email: {
-          equals: email,
-          mode: 'insensitive',
-        },
-      },
+    // Get organization name
+    const organization = await db.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
     });
 
-    if (!existingUser) {
-      const newUser = await db.user.create({
-        data: {
-          emailVerified: false,
-          email,
-          name: email.split('@')[0],
-        },
-      });
-
-      userId = newUser.id;
+    if (!organization) {
+      throw new Error('Organization not found.');
     }
 
-    const finalUserId = existingUser?.id ?? userId;
-
-    // Check if there's an existing member (including deactivated ones) for this user and organization
-    const existingMember = await db.member.findFirst({
-      where: {
-        userId: finalUserId,
+    // Create invitation record
+    const invitation = await db.invitation.create({
+      data: {
+        email: email.toLowerCase(),
         organizationId,
+        role: roles.length === 1 ? roles[0] : roles.join(','),
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        inviterId: currentUserId,
       },
     });
 
-    let member;
-    if (existingMember) {
-      // If member exists but is deactivated, reactivate it and update roles
-      if (existingMember.deactivated) {
-        const roleString = roles.sort().join(',');
-        member = await db.member.update({
-          where: { id: existingMember.id },
-          data: {
-            deactivated: false,
-            role: roleString,
-          },
-        });
-      } else {
-        // Member already exists and is active, return existing member
-        member = existingMember;
-      }
-    } else {
-      // No existing member, create a new one
-      member = await auth.api.addMember({
-        body: {
-          userId: finalUserId,
-          organizationId,
-          role: roles, // Auth API expects role or role array
-        },
-      });
+    // ✅ PRODUCTION-SAFE INVITE LINK GENERATION
+    const appUrl = process.env.APP_URL;
+
+    if (!appUrl) {
+      throw new Error('APP_URL is not configured in environment variables.');
     }
 
-    // Create training video completion entries for the new member (only if member was just created/reactivated)
-    if (member?.id && !existingMember) {
-      await createTrainingVideoEntries(member.id);
-    }
+    const inviteLink = `${appUrl}/invite/${invitation.id}`;
 
-    return { success: true, data: member };
+    // Send invitation email
+    await sendInviteMemberEmail({
+      inviteeEmail: email.toLowerCase(),
+      inviteLink,
+      organizationName: organization.name,
+    });
+
+    return { success: true };
   } catch (error) {
-    console.error('Error adding employee:', error);
-    return { success: false, error: 'Failed to add employee' };
+    console.error('Error sending invitation email:', error);
+    throw error;
   }
 };

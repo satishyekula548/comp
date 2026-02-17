@@ -31,6 +31,8 @@ import {
 } from '@comp/ui/form';
 import { Input } from '@comp/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@comp/ui/tabs';
+//import { addEmployeeWithoutInvite } from '../actions/addEmployeeWithoutInvite';
+//import { sendInvitationEmailToExistingMember as addEmployeeWithoutInvite } from '../actions/addEmployeeWithoutInvite';
 import { addEmployeeWithoutInvite } from '../actions/addEmployeeWithoutInvite';
 import { checkMemberStatus } from '../actions/checkMemberStatus';
 import { sendInvitationEmailToExistingMember } from '../actions/sendInvitationEmail';
