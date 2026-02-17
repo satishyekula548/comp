@@ -41,9 +41,8 @@ RUN echo '{"name":"migrator","type":"module","dependencies":{"prisma":"^6.14.0",
 # Install ONLY Prisma dependencies
 RUN bun install
 
-# Ensure Prisma can find migrations relative to the published schema path
-# We copy the local migrations into the published package's dist directory
-RUN cp -R packages/db/prisma/migrations node_modules/@trycompai/db/dist/
+# Ensure Prisma can find migrations relative to the published package's dist directory
+RUN cp -R packages/db/prisma/migrations node_modules/@trycompai/db/dist/ || true
 
 # Run migrations against the combined schema published by @trycompai/db
 RUN echo "Running migrations against @trycompai/db combined schema"
@@ -78,6 +77,7 @@ ARG NEXT_PUBLIC_LINKEDIN_PARTNER_ID
 ARG NEXT_PUBLIC_LINKEDIN_CONVERSION_ID
 ARG NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_FLEET_URL
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_PUBLIC_PORTAL_URL=$NEXT_PUBLIC_PORTAL_URL \
     NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
@@ -88,6 +88,7 @@ ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_PUBLIC_LINKEDIN_CONVERSION_ID=$NEXT_PUBLIC_LINKEDIN_CONVERSION_ID \
     NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL=$NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL \
     NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_FLEET_URL=$NEXT_PUBLIC_FLEET_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
     NODE_OPTIONS=--max_old_space_size=6144
@@ -113,7 +114,7 @@ CMD ["node", "apps/app/server.js"]
 # =============================================================================
 # STAGE 5: Portal Builder
 # =============================================================================
-FROM deps AS portal-builder
+FROM node:22-alpine AS portal-builder
 
 WORKDIR /app
 
@@ -130,13 +131,15 @@ RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema.prisma
 
 # Ensure Next build has required public env at build-time
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
+ARG NEXT_PUBLIC_FLEET_URL
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
+    NEXT_PUBLIC_FLEET_URL=$NEXT_PUBLIC_FLEET_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
     NODE_OPTIONS=--max_old_space_size=6144
 
 # Build the portal
-RUN cd apps/portal && SKIP_ENV_VALIDATION=true bun run build:docker
+RUN cd apps/portal && SKIP_ENV_VALIDATION=true npm run build:docker
 
 # =============================================================================
 # STAGE 6: Portal Production
@@ -154,3 +157,4 @@ EXPOSE 3000
 CMD ["node", "apps/portal/server.js"]
 
 # (Trigger.dev hosted; no local runner stage)
+
