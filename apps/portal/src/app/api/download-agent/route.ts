@@ -31,7 +31,7 @@ const getDownloadTarget = (os: SupportedOS): DownloadTarget => {
     return {
       key: `windows/${WINDOWS_FILENAME}`,
       filename: WINDOWS_FILENAME,
-      contentType: 'application/octet-stream',
+      contentType: 'application/x-msi',
     };
   }
 
